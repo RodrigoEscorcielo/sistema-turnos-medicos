@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { getEspecialidades } from '../api/especialidades';
 import { getMedicos } from '../api/medicos';
 import { getDisponibilidad } from '../api/agenda';
+import { crearTurno } from '../api/turnos';
 
 function SeleccionEspecialidad() {
   const [especialidades, setEspecialidades] = useState([]);
@@ -11,6 +12,8 @@ function SeleccionEspecialidad() {
   const [medicoSeleccionado, setMedicoSeleccionado] = useState(null);
   const [horarios, setHorarios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [turnoConfirmado, setTurnoConfirmado] = useState(null);
+  const [confirmando, setConfirmando] = useState(false);
 
   useEffect(() => {
     getEspecialidades().then((data) => {
@@ -23,15 +26,29 @@ function SeleccionEspecialidad() {
     if (seleccionada) {
       setMedicoSeleccionado(null);
       setHorarios([]);
+      setTurnoConfirmado(null);
       getMedicos(seleccionada.id).then(setMedicos);
     }
   }, [seleccionada]);
 
   useEffect(() => {
     if (medicoSeleccionado) {
+      setTurnoConfirmado(null);
       getDisponibilidad(medicoSeleccionado.id).then(setHorarios);
     }
   }, [medicoSeleccionado]);
+
+  async function handleConfirmar(agendaId) {
+    setConfirmando(true);
+    try {
+      const turno = await crearTurno(agendaId);
+      setTurnoConfirmado(turno);
+    } catch (error) {
+      alert('No se pudo confirmar el turno. Intentá de nuevo.');
+    } finally {
+      setConfirmando(false);
+    }
+  }
 
   if (cargando) return <p>Cargando especialidades...</p>;
 
@@ -61,7 +78,7 @@ function SeleccionEspecialidad() {
         </>
       )}
 
-      {medicoSeleccionado && (
+      {medicoSeleccionado && !turnoConfirmado && (
         <>
           <h4>Horarios de {medicoSeleccionado.nombre} {medicoSeleccionado.apellido}</h4>
           {horarios.length === 0 ? (
@@ -70,12 +87,21 @@ function SeleccionEspecialidad() {
             <ul>
               {horarios.map((h) => (
                 <li key={h.agenda_id}>
-                  {h.fecha} — {h.hora_inicio} a {h.hora_fin}
+                  {h.fecha} — {h.hora_inicio} a {h.hora_fin}{' '}
+                  <button disabled={confirmando} onClick={() => handleConfirmar(h.agenda_id)}>
+                    {confirmando ? 'Confirmando...' : 'Confirmar turno'}
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </>
+      )}
+
+      {turnoConfirmado && (
+        <p style={{ color: 'green' }}>
+          Turno #{turnoConfirmado.turno_id} confirmado correctamente.
+        </p>
       )}
     </div>
   );
