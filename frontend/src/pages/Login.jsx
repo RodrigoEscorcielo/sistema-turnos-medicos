@@ -27,7 +27,9 @@ function Login({ onLoginExitoso }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2>Iniciar sesión</h2>
+      <h2>Iniciar sesión</h2><br></br>
+      <p>paciente@mail.com</p><br></br>
+      <p>1234</p><br></br>
       <div>
         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
       </div>

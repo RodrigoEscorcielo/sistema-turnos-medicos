@@ -38,17 +38,21 @@ function SeleccionEspecialidad() {
     }
   }, [medicoSeleccionado]);
 
-  async function handleConfirmar(agendaId) {
-    setConfirmando(true);
-    try {
-      const turno = await crearTurno(agendaId);
-      setTurnoConfirmado(turno);
-    } catch (error) {
+async function handleConfirmar(agendaId) {
+  setConfirmando(true);
+  try {
+    const turno = await crearTurno(agendaId);
+    setTurnoConfirmado(turno);
+  } catch (error) {
+    if (error.response?.data?.error === 'horario_no_disponible') {
+      alert('Ese horario ya no está disponible. Elegí otro.');
+    } else {
       alert('No se pudo confirmar el turno. Intentá de nuevo.');
-    } finally {
-      setConfirmando(false);
     }
+  } finally {
+    setConfirmando(false);
   }
+}
 
   if (cargando) return <p>Cargando especialidades...</p>;
 
