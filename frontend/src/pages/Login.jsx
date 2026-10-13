@@ -29,6 +29,7 @@ function Login({ onLoginExitoso }) {
     <form onSubmit={handleSubmit}>
       <h2>Iniciar sesión</h2><br></br>
       <p>paciente@mail.com</p><br></br>
+       <p>cambiopaula@mail.com</p><br></br>
       {/* <!-- comentario test --> */}
       <p>1234</p><br></br>
       <div>
