@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Registro from './pages/Registro';
 import SeleccionEspecialidad from './pages/SeleccionEspecialidad';
 import MisTurnos from './pages/MisTurnos';
+import Chat from './pages/Chat';
 
 function App() {
   const [usuario, setUsuario] = useState(null);
@@ -28,10 +29,12 @@ function App() {
       <nav>
         <button onClick={() => setPantalla('solicitar')}>Solicitar turno</button>
         <button onClick={() => setPantalla('mis-turnos')}>Mis turnos</button>
+        <button onClick={() => setPantalla('chat')}>Asistente IA</button>
       </nav>
 
       {pantalla === 'solicitar' && <SeleccionEspecialidad />}
       {pantalla === 'mis-turnos' && <MisTurnos />}
+      {pantalla === 'chat' && <Chat />}
     </div>
   );
 }
