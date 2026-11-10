@@ -28,6 +28,11 @@ async function consultarDisponibilidad(medicoId) {
 
 async function reservarTurno(agendaId, pacienteId) {
   const turno = await prisma.$transaction(async (tx) => {
+    const paciente = await tx.pacientes.findUnique({ where: { id: BigInt(pacienteId) } });
+    if (!paciente) {
+      throw new Error('paciente_no_encontrado');
+    }
+
     const horario = await tx.agenda.findUnique({ where: { id: BigInt(agendaId) } });
 
     if (!horario || !horario.disponible) {
@@ -53,7 +58,8 @@ async function reservarTurno(agendaId, pacienteId) {
 }
 
 // pacienteId es opcional: si viene, se verifica que el turno sea de ese paciente
-async function cancelarTurnoPorId(turnoId, pacienteId) {
+// motivo es opcional: lo registra el administrativo al cancelar
+async function cancelarTurnoPorId(turnoId, pacienteId, motivo) {
   const turno = await prisma.$transaction(async (tx) => {
     const turnoExistente = await tx.turnos.findUnique({ where: { id: BigInt(turnoId) } });
 
@@ -74,7 +80,7 @@ async function cancelarTurnoPorId(turnoId, pacienteId) {
 
     return tx.turnos.update({
       where: { id: BigInt(turnoId) },
-      data: { estado: 'cancelado', fecha_actualizacion: new Date() },
+      data: { estado: 'cancelado', motivo: motivo || undefined, fecha_actualizacion: new Date() },
     });
   });
 
@@ -187,6 +193,53 @@ async function cargarHorarios(medicoId, fecha, horaDesde, horaHasta, duracionMin
   };
 }
 
+// ---- Gestión de turnos (administrativo) ----
+
+// Filtros opcionales: fecha (YYYY-MM-DD) y medicoId
+async function listarTurnos(fecha, medicoId) {
+  if ((fecha && !esFechaValida(fecha)) || (medicoId && !/^\d+$/.test(String(medicoId)))) {
+    throw new Error('datos_invalidos');
+  }
+
+  const turnos = await prisma.turnos.findMany({
+    where: {
+      medico_id: medicoId ? BigInt(medicoId) : undefined,
+      agenda: fecha ? { fecha: new Date(`${fecha}T00:00:00Z`) } : undefined,
+    },
+    include: {
+      agenda: true,
+      pacientes: true,
+      medicos: { include: { especialidades: true } },
+    },
+    orderBy: [{ agenda: { fecha: 'asc' } }, { agenda: { hora_inicio: 'asc' } }],
+  });
+
+  return turnos.map(t => ({
+    turno_id: Number(t.id),
+    fecha: formatearFecha(t.agenda.fecha),
+    hora_inicio: formatearHora(t.agenda.hora_inicio),
+    medico: `${t.medicos.nombre} ${t.medicos.apellido}`,
+    especialidad: t.medicos.especialidades.nombre,
+    paciente: `${t.pacientes.nombre} ${t.pacientes.apellido}`,
+    nro_credencial: t.pacientes.nro_credencial,
+    estado: t.estado,
+    motivo: t.motivo,
+  }));
+}
+
+async function listarPacientes() {
+  const pacientes = await prisma.pacientes.findMany({
+    orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
+  });
+
+  return pacientes.map(p => ({
+    id: Number(p.id),
+    nombre: p.nombre,
+    apellido: p.apellido,
+    nro_credencial: p.nro_credencial,
+  }));
+}
+
 module.exports = {
   prisma,
   consultarDisponibilidad,
@@ -194,4 +247,6 @@ module.exports = {
   cancelarTurnoPorId,
   listarTurnosDePaciente,
   cargarHorarios,
+  listarTurnos,
+  listarPacientes,
 };

@@ -21,7 +21,13 @@ const MODELOS = [
   'gemini-3.5-flash',
 ];
 const MAXIMO_VUELTAS = 5;
-const ERRORES_CONOCIDOS = ['horario_no_disponible', 'turno_no_encontrado', 'turno_ya_cancelado', 'turno_ajeno'];
+const ERRORES_CONOCIDOS = [
+  'horario_no_disponible',
+  'turno_no_encontrado',
+  'turno_ya_cancelado',
+  'turno_ajeno',
+  'paciente_no_encontrado',
+];
 
 const herramientas = [{
   functionDeclarations: [

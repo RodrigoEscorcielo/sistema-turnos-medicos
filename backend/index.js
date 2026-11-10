@@ -9,6 +9,8 @@ const {
   cancelarTurnoPorId,
   listarTurnosDePaciente,
   cargarHorarios,
+  listarTurnos,
+  listarPacientes,
 } = require('./turnos');
 const { conversarConIA } = require('./ia');
 
@@ -69,6 +71,9 @@ app.post('/turnos', async (req, res) => {
   } catch (error) {
     if (error.message === 'horario_no_disponible') {
       return res.status(409).json({ error: 'horario_no_disponible' });
+    }
+    if (error.message === 'paciente_no_encontrado') {
+      return res.status(404).json({ error: 'paciente_no_encontrado' });
     }
     console.error(error);
     res.status(500).json({ error: 'error_interno' });
@@ -131,6 +136,65 @@ app.post('/admin/agenda', async (req, res) => {
     if (error.message === 'medico_no_encontrado') {
       return res.status(404).json({ error: 'medico_no_encontrado' });
     }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 6. Admin: listar turnos (filtros opcionales: fecha, medico_id)
+app.get('/admin/turnos', async (req, res) => {
+  const { fecha, medico_id } = req.query;
+  try {
+    res.json(await listarTurnos(fecha, medico_id));
+  } catch (error) {
+    if (error.message === 'datos_invalidos') {
+      return res.status(400).json({ error: 'datos_invalidos' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 7. Admin: reservar turno en nombre de un paciente
+app.post('/admin/turnos', async (req, res) => {
+  const { agenda_id, paciente_id } = req.body;
+  try {
+    res.status(201).json(await reservarTurno(agenda_id, paciente_id));
+  } catch (error) {
+    if (error.message === 'horario_no_disponible') {
+      return res.status(409).json({ error: 'horario_no_disponible' });
+    }
+    if (error.message === 'paciente_no_encontrado') {
+      return res.status(404).json({ error: 'paciente_no_encontrado' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 8. Admin: cancelar cualquier turno, con motivo opcional
+app.patch('/admin/turnos/:id/cancelar', async (req, res) => {
+  const { id } = req.params;
+  const { motivo } = req.body || {};
+  try {
+    res.json(await cancelarTurnoPorId(id, null, motivo));
+  } catch (error) {
+    if (error.message === 'turno_no_encontrado') {
+      return res.status(404).json({ error: 'turno_no_encontrado' });
+    }
+    if (error.message === 'turno_ya_cancelado') {
+      return res.status(409).json({ error: 'turno_ya_cancelado' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 9. Admin: listar pacientes
+app.get('/admin/pacientes', async (req, res) => {
+  try {
+    res.json(await listarPacientes());
+  } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'error_interno' });
   }
