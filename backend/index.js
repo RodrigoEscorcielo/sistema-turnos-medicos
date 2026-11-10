@@ -97,6 +97,33 @@ app.post('/turnos', async (req, res) => {
   }
 });
 
+// Listar mis turnos
+// Temporal: cuando exista /auth/login, paciente_id sale del JWT
+app.get('/turnos/mios', async (req, res) => {
+  const { paciente_id } = req.query;
+  try {
+    const turnos = await prisma.turnos.findMany({
+      where: { paciente_id: BigInt(paciente_id) },
+      include: { agenda: true, medicos: { include: { especialidades: true } } },
+      orderBy: { agenda: { fecha: 'asc' } },
+    });
+
+    const formateado = turnos.map(t => ({
+      turno_id: Number(t.id),
+      fecha: t.agenda.fecha.toISOString().split('T')[0],
+      hora_inicio: t.agenda.hora_inicio.toISOString().split('T')[1].slice(0, 5),
+      medico: `${t.medicos.nombre} ${t.medicos.apellido}`,
+      especialidad: t.medicos.especialidades.nombre,
+      estado: t.estado,
+    }));
+
+    res.json(formateado);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
 // 3. Cancelar turno
 app.patch('/turnos/:id/cancelar', async (req, res) => {
   const { id } = req.params;

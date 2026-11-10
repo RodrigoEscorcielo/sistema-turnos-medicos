@@ -5,6 +5,7 @@ function MisTurnos() {
   const [turnos, setTurnos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [cancelandoId, setCancelandoId] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     cargarTurnos();
@@ -12,10 +13,11 @@ function MisTurnos() {
 
   function cargarTurnos() {
     setCargando(true);
-    getMisTurnos().then((data) => {
-      setTurnos(data);
-      setCargando(false);
-    });
+    setError(false);
+    getMisTurnos()
+      .then((data) => setTurnos(data))
+      .catch(() => setError(true))
+      .finally(() => setCargando(false));
   }
 
   async function handleCancelar(turnoId) {
@@ -31,6 +33,8 @@ function MisTurnos() {
   }
 
   if (cargando) return <p>Cargando tus turnos...</p>;
+
+  if (error) return <p>No se pudieron cargar tus turnos. Intentá de nuevo más tarde.</p>;
 
   if (turnos.length === 0) return <p>Todavía no tenés turnos.</p>;
 
