@@ -1,10 +1,45 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 const prisma = new PrismaClient();
+app.use(cors());
 app.use(express.json());
+
+// Listar especialidades
+app.get('/especialidades', async (req, res) => {
+  try {
+    const especialidades = await prisma.especialidades.findMany({ orderBy: { nombre: 'asc' } });
+    const formateado = especialidades.map(e => ({ id: Number(e.id), nombre: e.nombre }));
+    res.json(formateado);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// Listar médicos (filtro opcional por especialidad)
+app.get('/medicos', async (req, res) => {
+  const { especialidad_id } = req.query;
+  try {
+    const medicos = await prisma.medicos.findMany({
+      where: { especialidad_id: especialidad_id ? BigInt(especialidad_id) : undefined },
+      orderBy: { apellido: 'asc' },
+    });
+    const formateado = medicos.map(m => ({
+      id: Number(m.id),
+      nombre: m.nombre,
+      apellido: m.apellido,
+      especialidad_id: Number(m.especialidad_id),
+    }));
+    res.json(formateado);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
 
 // 1. Consultar disponibilidad de agenda
 app.get('/agenda/disponibilidad', async (req, res) => {
