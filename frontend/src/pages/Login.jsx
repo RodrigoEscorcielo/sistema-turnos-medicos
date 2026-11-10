@@ -13,8 +13,6 @@ function Login({ onLoginExitoso }) {
     setCargando(true);
     try {
       const data = await login({ email, password });
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('usuario_id', data.usuario_id);
       onLoginExitoso(data);
     } catch (err) {
       setError(err.response?.data?.error === 'credenciales_invalidas'

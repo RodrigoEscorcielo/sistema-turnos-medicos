@@ -16,8 +16,6 @@ function Registro({ onRegistroExitoso }) {
     setCargando(true);
     try {
       const data = await registrar(form);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('usuario_id', data.usuario_id);
       onRegistroExitoso(data);
     } catch (err) {
       setError(err.response?.data?.error === 'email_ya_registrado'
