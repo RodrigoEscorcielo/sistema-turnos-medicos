@@ -8,6 +8,7 @@ const {
   reservarTurno,
   cancelarTurnoPorId,
   listarTurnosDePaciente,
+  cargarHorarios,
 } = require('./turnos');
 const { conversarConIA } = require('./ia');
 
@@ -111,6 +112,25 @@ app.post('/ia/chat', async (req, res) => {
     const respuesta = await conversarConIA(mensaje, historial, paciente_id);
     res.json({ respuesta });
   } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 5. Admin: cargar disponibilidad de un médico
+// Temporal: sin control de rol hasta tener JWT
+app.post('/admin/agenda', async (req, res) => {
+  const { medico_id, fecha, hora_desde, hora_hasta, duracion_minutos } = req.body;
+  try {
+    const resultado = await cargarHorarios(medico_id, fecha, hora_desde, hora_hasta, duracion_minutos);
+    res.status(201).json(resultado);
+  } catch (error) {
+    if (error.message === 'datos_invalidos' || error.message === 'fecha_pasada') {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.message === 'medico_no_encontrado') {
+      return res.status(404).json({ error: 'medico_no_encontrado' });
+    }
     console.error(error);
     res.status(500).json({ error: 'error_interno' });
   }

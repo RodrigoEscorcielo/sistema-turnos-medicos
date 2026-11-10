@@ -3,6 +3,8 @@
 
 let usuariosMock = [
   { usuario_id: 1, email: "paciente@mail.com", password: "1234", rol: "paciente" },
+  // Temporal: administrativo de prueba hasta tener login real
+  { usuario_id: 2, email: "admin@mail.com", password: "1234", rol: "administrativo" },
 ];
 
 export async function registrar({ email, password, nombre, apellido, nro_credencial }) {

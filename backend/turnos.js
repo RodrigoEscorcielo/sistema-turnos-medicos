@@ -98,10 +98,100 @@ async function listarTurnosDePaciente(pacienteId) {
   }));
 }
 
+// ---- Carga de agenda (administrativo) ----
+
+const DURACIONES_VALIDAS = [15, 20, 30, 60];
+const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function horaAMinutos(hora) {
+  const [horas, minutos] = hora.split(':').map(Number);
+  return horas * 60 + minutos;
+}
+
+function minutosAHora(totalMinutos) {
+  const horas = String(Math.floor(totalMinutos / 60)).padStart(2, '0');
+  const minutos = String(totalMinutos % 60).padStart(2, '0');
+  return `${horas}:${minutos}`;
+}
+
+function esFechaValida(fecha) {
+  if (!FORMATO_FECHA.test(fecha)) return false;
+  const convertida = new Date(`${fecha}T00:00:00Z`);
+  return !isNaN(convertida) && formatearFecha(convertida) === fecha;
+}
+
+function fechaDeHoy() {
+  // Fecha local en formato YYYY-MM-DD
+  return new Date().toLocaleDateString('en-CA');
+}
+
+async function cargarHorarios(medicoId, fecha, horaDesde, horaHasta, duracionMinutos) {
+  const duracion = Number(duracionMinutos);
+
+  if (
+    !/^\d+$/.test(String(medicoId)) ||
+    !esFechaValida(fecha) ||
+    !FORMATO_HORA.test(horaDesde || '') ||
+    !FORMATO_HORA.test(horaHasta || '') ||
+    horaAMinutos(horaDesde) >= horaAMinutos(horaHasta) ||
+    !DURACIONES_VALIDAS.includes(duracion)
+  ) {
+    throw new Error('datos_invalidos');
+  }
+  if (fecha < fechaDeHoy()) {
+    throw new Error('fecha_pasada');
+  }
+
+  const medico = await prisma.medicos.findUnique({ where: { id: BigInt(medicoId) } });
+  if (!medico) {
+    throw new Error('medico_no_encontrado');
+  }
+
+  // Arma los horarios del bloque; si el último no entra completo, se descarta
+  const nuevos = [];
+  const fin = horaAMinutos(horaHasta);
+  for (let inicio = horaAMinutos(horaDesde); inicio + duracion <= fin; inicio += duracion) {
+    nuevos.push({
+      medico_id: BigInt(medicoId),
+      fecha: new Date(`${fecha}T00:00:00Z`),
+      hora_inicio: new Date(`1970-01-01T${minutosAHora(inicio)}:00Z`),
+      hora_fin: new Date(`1970-01-01T${minutosAHora(inicio + duracion)}:00Z`),
+      disponible: true,
+    });
+  }
+
+  // Los que ya existen (mismo médico, fecha y hora de inicio) se omiten
+  const resultado = await prisma.agenda.createMany({ data: nuevos, skipDuplicates: true });
+
+  const horariosDelBloque = await prisma.agenda.findMany({
+    where: {
+      medico_id: BigInt(medicoId),
+      fecha: new Date(`${fecha}T00:00:00Z`),
+      hora_inicio: { in: nuevos.map(n => n.hora_inicio) },
+    },
+    orderBy: { hora_inicio: 'asc' },
+  });
+
+  return {
+    creados: resultado.count,
+    omitidos: nuevos.length - resultado.count,
+    horarios: horariosDelBloque.map(a => ({
+      agenda_id: Number(a.id),
+      medico_id: Number(a.medico_id),
+      fecha: formatearFecha(a.fecha),
+      hora_inicio: formatearHora(a.hora_inicio),
+      hora_fin: formatearHora(a.hora_fin),
+      disponible: a.disponible,
+    })),
+  };
+}
+
 module.exports = {
   prisma,
   consultarDisponibilidad,
   reservarTurno,
   cancelarTurnoPorId,
   listarTurnosDePaciente,
+  cargarHorarios,
 };
