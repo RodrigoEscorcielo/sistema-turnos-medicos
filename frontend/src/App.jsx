@@ -4,6 +4,7 @@ import Registro from './pages/Registro';
 import SeleccionEspecialidad from './pages/SeleccionEspecialidad';
 import MisTurnos from './pages/MisTurnos';
 import Chat from './pages/Chat';
+import CargaAgenda from './pages/admin/CargaAgenda';
 
 function App() {
   const [usuario, setUsuario] = useState(null);
@@ -14,13 +15,28 @@ function App() {
     return mostrarRegistro ? (
       <>
         <Registro onRegistroExitoso={setUsuario} />
-        <button onClick={() => setMostrarRegistro(false)}>Ya tengo cuenta</button>
+        <div style={{ marginTop: '24px' }}>
+          <button onClick={() => setMostrarRegistro(false)}>Ya tengo cuenta</button>
+        </div>
       </>
     ) : (
       <>
         <Login onLoginExitoso={setUsuario} />
-        <button onClick={() => setMostrarRegistro(true)}>Crear cuenta</button>
+        <div style={{ marginTop: '24px' }}>
+          <button onClick={() => setMostrarRegistro(true)}>Crear cuenta</button>
+        </div>
       </>
+    );
+  }
+
+  if (usuario.rol === 'administrativo') {
+    return (
+      <div>
+        <nav>
+          <button>Cargar agenda</button>
+        </nav>
+        <CargaAgenda />
+      </div>
     );
   }
 
