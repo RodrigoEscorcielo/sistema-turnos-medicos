@@ -6,6 +6,7 @@ const app = express();
 const prisma = new PrismaClient();
 app.use(express.json());
 
+// 1. Consultar disponibilidad de agenda
 app.get('/agenda/disponibilidad', async (req, res) => {
   const { medico_id } = req.query;
   const disponibilidad = await prisma.agenda.findMany({
@@ -21,6 +22,83 @@ app.get('/agenda/disponibilidad', async (req, res) => {
   }));
 
   res.json(formateado);
+});
+
+// 2. Crear turno
+app.post('/turnos', async (req, res) => {
+  // Temporal: cuando exista /auth/login, paciente_id sale del JWT
+  const { agenda_id, paciente_id } = req.body;
+
+  try {
+    const turno = await prisma.$transaction(async (tx) => {
+      const slot = await tx.agenda.findUnique({ where: { id: BigInt(agenda_id) } });
+
+      if (!slot || !slot.disponible) {
+        throw new Error('horario_no_disponible');
+      }
+
+      await tx.agenda.update({
+        where: { id: BigInt(agenda_id) },
+        data: { disponible: false },
+      });
+
+      return tx.turnos.create({
+        data: {
+          paciente_id: BigInt(paciente_id),
+          medico_id: slot.medico_id,
+          agenda_id: BigInt(agenda_id),
+          estado: 'confirmado',
+        },
+      });
+    });
+
+    res.status(201).json({ turno_id: Number(turno.id), estado: turno.estado });
+  } catch (error) {
+    if (error.message === 'horario_no_disponible') {
+      return res.status(409).json({ error: 'horario_no_disponible' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 3. Cancelar turno
+app.patch('/turnos/:id/cancelar', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const turno = await prisma.$transaction(async (tx) => {
+      const turnoExistente = await tx.turnos.findUnique({ where: { id: BigInt(id) } });
+
+      if (!turnoExistente) {
+        throw new Error('turno_no_encontrado');
+      }
+      if (turnoExistente.estado === 'cancelado') {
+        throw new Error('turno_ya_cancelado');
+      }
+
+      await tx.agenda.update({
+        where: { id: turnoExistente.agenda_id },
+        data: { disponible: true },
+      });
+
+      return tx.turnos.update({
+        where: { id: BigInt(id) },
+        data: { estado: 'cancelado', fecha_actualizacion: new Date() },
+      });
+    });
+
+    res.json({ turno_id: Number(turno.id), estado: turno.estado });
+  } catch (error) {
+    if (error.message === 'turno_no_encontrado') {
+      return res.status(404).json({ error: 'turno_no_encontrado' });
+    }
+    if (error.message === 'turno_ya_cancelado') {
+      return res.status(409).json({ error: 'turno_ya_cancelado' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
 });
 
 app.listen(3000, () => console.log('Backend corriendo en http://localhost:3000'));
