@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Carga backend/.env aunque el backend se levante desde otra carpeta
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const {
