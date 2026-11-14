@@ -7,14 +7,17 @@ import Chat from './pages/Chat';
 import CargaAgenda from './pages/admin/CargaAgenda';
 import GestionTurnos from './pages/admin/GestionTurnos';
 import AltaPaciente from './pages/admin/AltaPaciente';
+import { leerSesion, guardarSesion, borrarSesion } from './api/sesion';
 
-// Recupera la sesión guardada al recargar la página (si existe)
+// Recupera la sesión guardada al recargar la página.
+// Descarta sesiones viejas del login simulado (sin paciente_id).
 function leerSesionGuardada() {
-  try {
-    return JSON.parse(localStorage.getItem('sesion'));
-  } catch {
+  const sesion = leerSesion();
+  if (!sesion || (sesion.rol === 'paciente' && !sesion.paciente_id)) {
+    borrarSesion();
     return null;
   }
+  return sesion;
 }
 
 function App() {
@@ -23,22 +26,14 @@ function App() {
   const [pantalla, setPantalla] = useState('solicitar');
   const [pantallaAdmin, setPantallaAdmin] = useState('agenda');
 
-  // datos: { token, rol, usuario_id }
+  // datos: { usuario_id, rol, paciente_id, nombre }
   function iniciarSesion(datos) {
-    try {
-      localStorage.setItem('sesion', JSON.stringify(datos));
-    } catch {
-      // Si el navegador bloquea localStorage, la sesión dura hasta recargar
-    }
+    guardarSesion(datos);
     setUsuario(datos);
   }
 
   function cerrarSesion() {
-    try {
-      localStorage.removeItem('sesion');
-    } catch {
-      // Sin localStorage no hay nada que borrar
-    }
+    borrarSesion();
     setUsuario(null);
     setMostrarRegistro(false);
     setPantalla('solicitar');

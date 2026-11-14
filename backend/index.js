@@ -13,11 +13,42 @@ const {
   listarPacientes,
 } = require('./turnos');
 const { conversarConIA } = require('./ia');
-const { registrarPaciente } = require('./usuarios');
+const { registrarPaciente, iniciarSesion, datosDeSesion } = require('./usuarios');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Iniciar sesión: valida email y contraseña contra la base (sin token)
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body || {};
+  try {
+    res.json(await iniciarSesion(email, password));
+  } catch (error) {
+    if (error.message === 'credenciales_invalidas') {
+      return res.status(401).json({ error: 'credenciales_invalidas' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// Registro de paciente por sí mismo
+app.post('/auth/registro', async (req, res) => {
+  try {
+    const { usuario_id } = await registrarPaciente(req.body || {});
+    res.status(201).json(await datosDeSesion(usuario_id));
+  } catch (error) {
+    if (error.message === 'datos_invalidos') {
+      return res.status(400).json({ error: 'datos_invalidos' });
+    }
+    if (error.message === 'email_ya_registrado' || error.message === 'credencial_ya_registrada') {
+      return res.status(409).json({ error: error.message });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
 
 // Listar especialidades
 app.get('/especialidades', async (req, res) => {
@@ -96,11 +127,16 @@ app.get('/turnos/mios', async (req, res) => {
 // 3. Cancelar turno
 app.patch('/turnos/:id/cancelar', async (req, res) => {
   const { id } = req.params;
+  // paciente_id: el turno tiene que ser de ese paciente
+  const { paciente_id } = req.body || {};
   try {
-    res.json(await cancelarTurnoPorId(id));
+    res.json(await cancelarTurnoPorId(id, paciente_id));
   } catch (error) {
     if (error.message === 'turno_no_encontrado') {
       return res.status(404).json({ error: 'turno_no_encontrado' });
+    }
+    if (error.message === 'turno_ajeno') {
+      return res.status(403).json({ error: 'turno_ajeno' });
     }
     if (error.message === 'turno_ya_cancelado') {
       return res.status(409).json({ error: 'turno_ya_cancelado' });

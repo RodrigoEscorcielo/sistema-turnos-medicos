@@ -84,9 +84,40 @@ async function registrarPaciente({ nombre, apellido, nro_credencial, email, pass
   }
 }
 
+// ---- Inicio de sesión (sin token) ----
+
+// Datos que el frontend guarda en su sesión
+async function datosDeSesion(usuarioId) {
+  const usuario = await prisma.usuarios.findUnique({
+    where: { id: BigInt(usuarioId) },
+    include: { pacientes: true, administrativos: true },
+  });
+  const persona = usuario.pacientes || usuario.administrativos;
+
+  return {
+    usuario_id: Number(usuario.id),
+    rol: usuario.rol,
+    paciente_id: usuario.pacientes ? Number(usuario.pacientes.id) : null,
+    nombre: persona ? `${persona.nombre} ${persona.apellido}` : usuario.email,
+  };
+}
+
+async function iniciarSesion(email, password) {
+  const usuario = await prisma.usuarios.findUnique({ where: { email: normalizarEmail(email) } });
+
+  // Mismo error si el email no existe o la contraseña no coincide
+  if (!usuario || typeof password !== 'string' || !(await contrasenaCoincide(password, usuario.contrasena_hash))) {
+    throw new Error('credenciales_invalidas');
+  }
+
+  return datosDeSesion(usuario.id);
+}
+
 module.exports = {
   hashearContrasena,
   contrasenaCoincide,
   normalizarEmail,
   registrarPaciente,
+  datosDeSesion,
+  iniciarSesion,
 };

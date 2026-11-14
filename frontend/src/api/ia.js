@@ -1,7 +1,5 @@
 import cliente from './cliente';
-
-// Temporal: se elimina cuando el paciente_id salga del JWT
-const PACIENTE_ID_TEMPORAL = 1;
+import { obtenerPacienteId } from './sesion';
 
 // POST /ia/chat → { respuesta }
 // historial: [{ rol: 'usuario' | 'ia', texto }]
@@ -9,7 +7,7 @@ export async function enviarMensaje(mensaje, historial) {
   const respuesta = await cliente.post('/ia/chat', {
     mensaje,
     historial,
-    paciente_id: PACIENTE_ID_TEMPORAL,
+    paciente_id: obtenerPacienteId(),
   });
   return respuesta.data;
 }
