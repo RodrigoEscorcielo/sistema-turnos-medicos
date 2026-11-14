@@ -25,6 +25,13 @@ export async function cancelarTurnoAdmin(turnoId, motivo) {
   return respuesta.data;
 }
 
+// POST /admin/pacientes → { paciente_id, usuario_id }
+// datos: { nombre, apellido, nro_credencial, email, password, telefono }
+export async function crearPaciente(datos) {
+  const respuesta = await cliente.post('/admin/pacientes', datos);
+  return respuesta.data;
+}
+
 // GET /admin/pacientes → [{ id, nombre, apellido, nro_credencial }]
 export async function getPacientes() {
   const respuesta = await cliente.get('/admin/pacientes');

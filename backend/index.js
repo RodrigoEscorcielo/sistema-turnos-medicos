@@ -13,6 +13,7 @@ const {
   listarPacientes,
 } = require('./turnos');
 const { conversarConIA } = require('./ia');
+const { registrarPaciente } = require('./usuarios');
 
 const app = express();
 app.use(cors());
@@ -195,6 +196,22 @@ app.get('/admin/pacientes', async (req, res) => {
   try {
     res.json(await listarPacientes());
   } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'error_interno' });
+  }
+});
+
+// 10. Admin: alta de paciente (crea usuario + paciente)
+app.post('/admin/pacientes', async (req, res) => {
+  try {
+    res.status(201).json(await registrarPaciente(req.body || {}));
+  } catch (error) {
+    if (error.message === 'datos_invalidos') {
+      return res.status(400).json({ error: 'datos_invalidos' });
+    }
+    if (error.message === 'email_ya_registrado' || error.message === 'credencial_ya_registrada') {
+      return res.status(409).json({ error: error.message });
+    }
     console.error(error);
     res.status(500).json({ error: 'error_interno' });
   }

@@ -6,6 +6,7 @@ import MisTurnos from './pages/MisTurnos';
 import Chat from './pages/Chat';
 import CargaAgenda from './pages/admin/CargaAgenda';
 import GestionTurnos from './pages/admin/GestionTurnos';
+import AltaPaciente from './pages/admin/AltaPaciente';
 
 // Recupera la sesión guardada al recargar la página (si existe)
 function leerSesionGuardada() {
@@ -68,11 +69,13 @@ function App() {
         <nav>
           <button onClick={() => setPantallaAdmin('agenda')}>Cargar agenda</button>
           <button onClick={() => setPantallaAdmin('turnos')}>Turnos</button>
+          <button onClick={() => setPantallaAdmin('pacientes')}>Pacientes</button>
           <button onClick={cerrarSesion}>Cerrar sesión</button>
         </nav>
 
         {pantallaAdmin === 'agenda' && <CargaAgenda />}
         {pantallaAdmin === 'turnos' && <GestionTurnos />}
+        {pantallaAdmin === 'pacientes' && <AltaPaciente />}
       </div>
     );
   }
